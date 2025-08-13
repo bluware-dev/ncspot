@@ -1,3 +1,5 @@
+> ⚠️ WARN: This fork contains temporary fixes for authentication issues and uses the dev branch of librespot.
+
 <div align="center" style="text-align:center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="images/logo_text_dark.svg">
