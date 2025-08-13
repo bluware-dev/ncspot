@@ -2,8 +2,6 @@ use crate::events::{Event, EventManager};
 use crate::model::playable::Playable;
 use crate::queue::QueueEvent;
 use crate::spotify::PlayerEvent;
-use futures::Future;
-use futures::FutureExt;
 use librespot_core::session::Session;
 use librespot_core::spotify_id::SpotifyId;
 use librespot_core::token::Token;
@@ -71,12 +69,22 @@ impl Worker {
     }
 
     async fn get_token(session: Session, sender: Sender<Option<Token>>) {
-        let scopes = "user-read-private,playlist-read-private,playlist-read-collaborative,playlist-modify-public,playlist-modify-private,user-follow-modify,user-follow-read,user-library-read,user-library-modify,user-top-read,user-read-recently-played";
-        session
-            .token_provider()
-            .get_token(scopes)
-            .map(|response| sender.send(response.ok()).expect("token channel is closed"))
-            .await;
+        // Intenta obtener token vía login5 en la Session (branch dev de librespot)
+        match session.login5().auth_token().await {
+            Ok(token) => {
+                // envia el token hacia el que lo pidió
+                if let Err(e) = sender.send(Some(token)) {
+                    error!("could not send token: {e}");
+                }
+            }
+            Err(e) => {
+                error!("login5 token acquisition failed: {e}");
+                // enviamos None para que el receptor sepa que falló
+                if let Err(e) = sender.send(None) {
+                    error!("could not send token failure: {e}");
+                }
+            }
+        }
     }
 
     pub async fn run_loop(&mut self) {
